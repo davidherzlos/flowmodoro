@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="night">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="DevFlow — Developer Pomodoro timer with project tracking and Logseq export." />
+  <title>DevFlow — Developer Pomodoro Timer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <canvas id="particles-canvas" aria-hidden="true"></canvas>
+
+  <div class="app-shell">
+
+    <!-- ── Header ── -->
+    <header class="app-header">
+      <div class="logo">
+        <span class="logo-bracket">[</span>
+        <span class="logo-text">DevFlow</span>
+        <span class="logo-bracket">]</span>
+      </div>
+      <div class="header-meta">
+        <span class="terminal-prompt">~/focus-session</span>
+        <span class="blink-cursor">▌</span>
+      </div>
+      <nav class="main-tabs" aria-label="Main navigation">
+        <button class="main-tab-btn active" id="btn-tab-timer">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          timer
+        </button>
+        <button class="main-tab-btn" id="btn-tab-report">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          reports
+        </button>
+      </nav>
+      <div class="theme-toggle">
+        <button class="theme-btn" id="btn-theme" aria-label="Toggle theme">
+          <span class="theme-icon-night">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            night
+          </span>
+          <span class="theme-icon-day">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            day
+          </span>
+        </button>
+      </div>
+      <div class="header-stats">
+        <span class="stat-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span id="stat-total">0</span> sessions today
+        </span>
+      </div>
+    </header>
+
+    <!-- ── Left Sidebar: Stats ── -->
+    <aside class="stats-panel" aria-label="Session statistics">
+      <h2 class="stats-heading">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        stats.json
+      </h2>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-val" id="stat-focus-count">0</div>
+          <div class="stat-key">focus_sessions</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="stat-focus-time">0m</div>
+          <div class="stat-key">focus_time</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="stat-breaks">0</div>
+          <div class="stat-key">breaks_taken</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="stat-streak">🔥 0</div>
+          <div class="stat-key">current_streak</div>
+        </div>
+      </div>
+
+      <div class="chart-section">
+        <div class="chart-label">sessions / hour</div>
+        <div class="bar-chart" id="bar-chart" aria-label="Sessions per hour bar chart"></div>
+      </div>
+
+      <!-- Category summary -->
+      <div class="section-heading">today by category</div>
+      <div class="category-panel" id="category-panel"></div>
+
+      <!-- Per-project today -->
+      <div class="section-heading">projects today</div>
+      <div class="projects-panel" id="projects-panel"></div>
+
+      <div class="tags-section">
+        <div class="tag-label">current task</div>
+        <div class="tag-display" id="tag-display">// idle</div>
+      </div>
+
+      <div class="sound-toggle-wrap">
+        <label class="toggle-label" for="sound-toggle">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          sound alerts
+        </label>
+        <input type="checkbox" id="sound-toggle" class="toggle-input" checked aria-label="Toggle sound alerts" />
+        <label class="toggle-switch" for="sound-toggle" aria-hidden="true"></label>
+      </div>
+
+      <div class="sound-toggle-wrap">
+        <label class="toggle-label" for="autostart-toggle">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          auto-start breaks
+        </label>
+        <input type="checkbox" id="autostart-toggle" class="toggle-input" aria-label="Toggle auto-start breaks" />
+        <label class="toggle-switch" for="autostart-toggle" aria-hidden="true"></label>
+      </div>
+    </aside>
+
+    <!-- ── Main Content ── -->
+    <main class="main-content">
+
+      <!-- TIMER AREA -->
+      <div class="main-timer-area">
+
+        <nav class="mode-tabs" role="tablist" aria-label="Timer modes">
+          <button class="tab-btn active" role="tab" aria-selected="true" data-mode="focus" id="tab-focus">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Deep Work
+          </button>
+          <button class="tab-btn" role="tab" aria-selected="false" data-mode="short" id="tab-short">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+            Coffee Break
+          </button>
+          <button class="tab-btn" role="tab" aria-selected="false" data-mode="long" id="tab-long">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            Long Break
+          </button>
+        </nav>
+
+        <section class="timer-card" aria-live="polite">
+
+          <div class="session-meta">
+            <div class="project-row">
+              <select class="project-select" id="project-select" aria-label="Select project"></select>
+              <button class="btn-icon" id="btn-new-project" title="New project (right-click to edit)" aria-label="New project">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </button>
+            </div>
+            <input
+              type="text" class="task-input" id="label-input"
+              placeholder="// task-id #tag1 #tag2 (optional)"
+              maxlength="80" aria-label="Task label and tags"
+            />
+          </div>
+
+          <div class="timer-ring-wrap">
+            <svg class="timer-svg" viewBox="0 0 240 240" aria-hidden="true">
+              <defs>
+                <linearGradient id="ring-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="var(--ring-focus-start)" />
+                  <stop offset="100%" stop-color="var(--ring-focus-end)" />
+                </linearGradient>
+                <filter id="glow">
+                  <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                  <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                </filter>
+              </defs>
+              <circle class="ring-track" cx="120" cy="120" r="104" />
+              <circle class="ring-progress" id="ring-progress" cx="120" cy="120" r="104"
+                stroke="url(#ring-gradient)" filter="url(#glow)" />
+              <g class="tick-marks" id="tick-marks"></g>
+            </svg>
+            <div class="timer-display">
+              <div class="time-code" id="time-display" aria-live="polite" aria-atomic="true">25:00</div>
+              <div class="mode-label" id="mode-label">DEEP WORK</div>
+              <div class="session-dots" id="session-dots">
+                <span class="dot filled"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="controls">
+            <button class="ctrl-btn secondary" id="btn-reset" aria-label="Reset timer" title="Reset [R]">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.08"/></svg>
+            </button>
+            <button class="ctrl-btn primary" id="btn-start" aria-label="Start timer">
+              <svg class="icon-play" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              <svg class="icon-pause hidden" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+            </button>
+            <button class="ctrl-btn secondary" id="btn-skip" aria-label="Skip session" title="Skip [S]">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+            </button>
+          </div>
+
+          <!-- Side-note / distraction quick-log -->
+          <button class="btn-distract" id="btn-distract" title="Log a side-note while timer keeps running [D]">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            log side-note
+            <kbd>D</kbd>
+          </button>
+
+          <div class="settings-row">
+            <label class="setting-item">
+              <span class="setting-label">focus</span>
+              <input type="number" class="setting-input" id="setting-focus" value="25" min="1" max="180" />
+              <span class="setting-unit">min</span>
+            </label>
+            <span class="setting-sep">/</span>
+            <label class="setting-item">
+              <span class="setting-label">short</span>
+              <input type="number" class="setting-input" id="setting-short" value="5" min="1" max="60" />
+              <span class="setting-unit">min</span>
+            </label>
+            <span class="setting-sep">/</span>
+            <label class="setting-item">
+              <span class="setting-label">long</span>
+              <input type="number" class="setting-input" id="setting-long" value="15" min="1" max="120" />
+              <span class="setting-unit">min</span>
+            </label>
+            <button class="settings-apply" id="btn-apply" title="Apply settings">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+          </div>
+        </section>
+
+        <!-- Quick-log bar (shown when D pressed) -->
+        <div class="quick-log-bar hidden" id="quick-log-bar">
+          <span class="quick-log-label">side-note</span>
+          <input
+            type="text" class="quick-log-input" id="quick-log-input"
+            placeholder="e.g.  twitter #social  or  PRE-8212 #review  or  lunch #break"
+            maxlength="80"
+          />
+          <input type="number" class="quick-log-dur" id="quick-log-dur" value="5" min="1" max="120" title="minutes" />
+          <span class="quick-log-unit">min</span>
+          <button class="quick-log-submit" id="btn-quick-log">log</button>
+          <button class="quick-log-close" id="btn-quick-log-close" aria-label="Cancel">✕</button>
+        </div>
+
+        <section class="log-section" aria-label="Activity log">
+          <div class="log-header">
+            <span class="log-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              activity log
+            </span>
+            <button class="log-clear-btn" id="btn-clear-log">clear</button>
+          </div>
+          <div class="log-terminal" id="log-terminal" role="log" aria-live="polite">
+            <div class="log-entry">
+              <span class="log-time">00:00:00</span>
+              <span class="log-badge badge-system">SYS</span>
+              <span class="log-msg">DevFlow initialized. Ready to ship. 🚀</span>
+            </div>
+          </div>
+        </section>
+
+      </div><!-- end .main-timer-area -->
+
+      <!-- REPORT PANEL -->
+      <div class="report-panel hidden" id="report-panel">
+        <div class="report-toolbar">
+          <div class="report-view-toggle">
+            <button class="report-view-btn active" id="report-view-day">daily</button>
+            <button class="report-view-btn" id="report-view-week">weekly</button>
+          </div>
+          <input type="date" class="report-date-input" id="report-date" aria-label="Report date" />
+          <button class="report-copy-btn" id="btn-copy-report">copy</button>
+        </div>
+        <pre class="report-output" id="report-output"></pre>
+      </div>
+
+    </main>
+
+    <div class="rightbar"></div>
+
+  </div><!-- end .app-shell -->
+
+  <!-- Completion overlay -->
+  <div class="completion-overlay" id="completion-overlay" aria-hidden="true" role="dialog">
+    <div class="completion-card">
+      <div class="completion-icon" id="completion-icon">✅</div>
+      <h2 class="completion-title" id="completion-title">Session Complete!</h2>
+      <p class="completion-msg" id="completion-msg">Time to take a break.</p>
+      <div class="completion-code" id="completion-code"></div>
+      <button class="completion-btn" id="btn-completion-ok">continue →</button>
+    </div>
+  </div>
+
+  <!-- New / edit project modal -->
+  <div class="modal-overlay" id="new-project-modal" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <h3 class="modal-title" id="modal-proj-title">new project</h3>
+      <div class="modal-field">
+        <label class="modal-label" for="np-name">name</label>
+        <input type="text" class="modal-input" id="np-name" placeholder="e.g. Premerg Sprint" maxlength="40" />
+      </div>
+      <div class="modal-field">
+        <label class="modal-label" for="np-category-id">
+          category
+          <button class="modal-label-link" id="btn-manage-cats" type="button">manage categories</button>
+        </label>
+        <select class="modal-input modal-select" id="np-category-id">
+          <option value="">— none —</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <label class="modal-label" for="np-goal">daily goal (minutes, 0 = none)</label>
+        <input type="number" class="modal-input" id="np-goal" value="120" min="0" max="960" />
+      </div>
+      <div class="modal-field">
+        <label class="modal-label">timer durations (min)</label>
+        <div class="modal-input-row">
+          <div>
+            <label class="modal-label" for="np-focus">focus</label>
+            <input type="number" class="modal-input" id="np-focus" value="25" min="1" max="180" />
+          </div>
+          <div>
+            <label class="modal-label" for="np-short">short</label>
+            <input type="number" class="modal-input" id="np-short" value="5" min="1" max="60" />
+          </div>
+          <div>
+            <label class="modal-label" for="np-long">long</label>
+            <input type="number" class="modal-input" id="np-long" value="15" min="1" max="120" />
+          </div>
+        </div>
+      </div>
+      <div class="modal-field">
+        <label class="modal-label" for="np-color">color</label>
+        <input type="color" class="modal-color" id="np-color" value="#7aa2f7" />
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn-delete hidden" id="btn-np-delete">delete</button>
+        <span style="flex:1"></span>
+        <button class="modal-btn-cancel" id="btn-np-cancel">cancel</button>
+        <button class="modal-btn-save" id="btn-np-save">create</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Category manager modal -->
+  <div class="modal-overlay" id="cat-modal" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="modal-card modal-card-wide">
+      <h3 class="modal-title">manage categories</h3>
+      <p class="modal-hint">Your own groupings. Mark one as "distraction" so reports separate it from focus time.</p>
+
+      <div class="cat-list" id="cat-list"></div>
+
+      <div class="cat-add-form">
+        <input type="text" class="modal-input cat-name-input" id="cat-name"
+          placeholder="category name, e.g. Premerg" maxlength="40" />
+        <input type="color" class="modal-color" id="cat-color" value="#7aa2f7" />
+        <label class="cat-distract-label">
+          <input type="checkbox" id="cat-is-distract" />
+          distraction
+        </label>
+        <button class="modal-btn-save" id="btn-cat-add">add</button>
+      </div>
+
+      <div class="modal-actions">
+        <button class="modal-btn-save" id="btn-cat-close">done</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
